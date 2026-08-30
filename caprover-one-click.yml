@@ -5,8 +5,7 @@ services:
     image: ghcr.io/tylonhh/trvl-caprover-oauth:latest
     environment:
       PUBLIC_BASE_URL: https://$$cap_appname.$$cap_root_domain
-      UPSTREAM_BASE_URL: http://srv-captain--$$cap_appname-trvl:8080
-      UPSTREAM_BEARER_TOKEN: $$cap_trvl_internal_token
+      TRVL_INTERNAL_TOKEN: $$cap_trvl_internal_token
       OAUTH_USERNAME: $$cap_oauth_username
       OAUTH_PASSWORD: $$cap_oauth_password
       OAUTH_CLIENT_ID: $$cap_oauth_client_id
@@ -14,19 +13,8 @@ services:
       OAUTH_SCOPE: trvl
     caproverExtra:
       containerHttpPort: '8080'
-
-  $$cap_appname-trvl:
-    image: ghcr.io/tylonhh/trvl-caprover:latest
-    environment:
-      TRVL_MCP_TOKEN: $$cap_trvl_internal_token
-      TRVL_NO_BROWSER_COOKIES: '1'
-      TRVL_NO_TIER2_CDP: '1'
-      TRVL_NO_TELEMETRY: '1'
     volumes:
-      - $$cap_appname-trvl-data:/home/trvl/.trvl
-    caproverExtra:
-      notExposeAsWebApp: 'true'
-      containerHttpPort: '8080'
+      - $$cap_appname-data:/home/trvl/.trvl
 
 caproverOneClickApp:
   displayName: trvl MCP with OAuth
@@ -35,10 +23,10 @@ caproverOneClickApp:
   documentation: https://github.com/TylonHH/trvl-caprover
   instructions:
     start: |-
-      This installs two apps in one CapRover project:
+      This installs one public CapRover app:
 
-      - The public app is an OAuth bridge for ChatGPT/Codex.
-      - The internal app runs trvl with persistent storage.
+      - The OAuth bridge listens publicly on port 8080.
+      - trvl runs inside the same container on 127.0.0.1 only.
 
       Keep the generated internal token, OAuth password and OAuth client secret private.
     end: |-
@@ -55,8 +43,6 @@ caproverOneClickApp:
       7. When ChatGPT opens the sign-in page, log in with:
          Username: $$cap_oauth_username
          Password: the OAuth password from this template.
-
-      The internal trvl app is not exposed as a public web app.
   variables:
     - id: $$cap_trvl_internal_token
       label: Internal trvl bearer token
