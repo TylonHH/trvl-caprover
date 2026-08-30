@@ -2,40 +2,84 @@ captainVersion: 4
 
 services:
   $$cap_appname:
+    image: ghcr.io/tylonhh/trvl-caprover-oauth:latest
+    environment:
+      PUBLIC_BASE_URL: https://$$cap_appname.$$cap_root_domain
+      UPSTREAM_BASE_URL: http://srv-captain--$$cap_appname-trvl:8080
+      UPSTREAM_BEARER_TOKEN: $$cap_trvl_internal_token
+      OAUTH_USERNAME: $$cap_oauth_username
+      OAUTH_PASSWORD: $$cap_oauth_password
+      OAUTH_CLIENT_ID: $$cap_oauth_client_id
+      OAUTH_CLIENT_SECRET: $$cap_oauth_client_secret
+      OAUTH_SCOPE: trvl
+    caproverExtra:
+      containerHttpPort: '8080'
+
+  $$cap_appname-trvl:
     image: ghcr.io/tylonhh/trvl-caprover:latest
     environment:
-      TRVL_MCP_TOKEN: $$cap_mcp_token
+      TRVL_MCP_TOKEN: $$cap_trvl_internal_token
       TRVL_NO_BROWSER_COOKIES: '1'
       TRVL_NO_TIER2_CDP: '1'
       TRVL_NO_TELEMETRY: '1'
     volumes:
-      - $$cap_appname-data:/home/trvl/.trvl
+      - $$cap_appname-trvl-data:/home/trvl/.trvl
     caproverExtra:
+      notExposeAsWebApp: 'true'
       containerHttpPort: '8080'
 
 caproverOneClickApp:
-  displayName: trvl MCP
-  description: Self-hosted travel MCP server for flights, accommodation, trains, cars and ferries.
+  displayName: trvl MCP with OAuth
+  description: Self-hosted travel MCP server for ChatGPT/Codex with an OAuth-compatible bridge.
   isOfficial: false
   documentation: https://github.com/TylonHH/trvl-caprover
   instructions:
     start: |-
-      This installs one trvl MCP app with persistent storage.
+      This installs two apps in one CapRover project:
 
-      Keep the generated MCP token secret. CapRover will pass it to trvl as an environment variable.
+      - The public app is an OAuth bridge for ChatGPT/Codex.
+      - The internal app runs trvl with persistent storage.
+
+      Keep the generated internal token, OAuth password and OAuth client secret private.
     end: |-
-      trvl has been deployed.
+      trvl with OAuth has been deployed.
 
       1. Open the app's HTTP Settings in CapRover.
       2. Enable HTTPS and Force HTTPS.
       3. Verify https://$$cap_appname.$$cap_root_domain/health returns status "ok".
-      4. Use https://$$cap_appname.$$cap_root_domain/mcp as the remote MCP URL.
-      5. Configure the generated token as a Bearer token in the MCP client.
+      4. Use https://$$cap_appname.$$cap_root_domain/mcp as the remote MCP URL in ChatGPT Developer Mode.
+      5. Select OAuth authentication.
+      6. Use these static OAuth client credentials:
+         Client ID: $$cap_oauth_client_id
+         Client Secret: the generated OAuth client secret from this template.
+      7. When ChatGPT opens the sign-in page, log in with:
+         Username: $$cap_oauth_username
+         Password: the OAuth password from this template.
 
-      The provider dashboard is available at /dashboard and requires the same Bearer token.
+      The internal trvl app is not exposed as a public web app.
   variables:
-    - id: $$cap_mcp_token
-      label: MCP bearer token
+    - id: $$cap_trvl_internal_token
+      label: Internal trvl bearer token
       defaultValue: $$cap_gen_random_hex(64)
-      description: Keep this secret. It grants full read/write access to trvl.
+      description: Internal secret used only between the OAuth bridge and trvl.
       validRegex: /^.{32,}$/
+    - id: $$cap_oauth_username
+      label: OAuth login username
+      defaultValue: rene
+      description: Username for the browser login page shown during OAuth authorization.
+      validRegex: /^.{2,}$/
+    - id: $$cap_oauth_password
+      label: OAuth login password
+      defaultValue: $$cap_gen_random_hex(24)
+      description: Password for the browser login page shown during OAuth authorization.
+      validRegex: /^.{12,}$/
+    - id: $$cap_oauth_client_id
+      label: OAuth client ID
+      defaultValue: trvl-chatgpt
+      description: Enter this as the OAuth client ID when creating the ChatGPT Developer Mode app.
+      validRegex: /^.{3,}$/
+    - id: $$cap_oauth_client_secret
+      label: OAuth client secret
+      defaultValue: $$cap_gen_random_hex(32)
+      description: Enter this as the OAuth client secret when creating the ChatGPT Developer Mode app.
+      validRegex: /^.{16,}$/
