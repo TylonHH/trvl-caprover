@@ -1,4 +1,4 @@
-name: Build container image
+name: Build container images
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-trvl:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -31,8 +31,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate image metadata
-        id: meta
+      - name: Generate trvl image metadata
+        id: trvl-meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/trvl-caprover
@@ -41,13 +41,50 @@ jobs:
             type=ref,event=tag
             type=sha
 
-      - name: Build and publish image
+      - name: Build and publish trvl image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.trvl-meta.outputs.tags }}
+          labels: ${{ steps.trvl-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-oauth-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate OAuth bridge image metadata
+        id: bridge-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/trvl-caprover-oauth
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=sha
+
+      - name: Build and publish OAuth bridge image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./bridge
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.bridge-meta.outputs.tags }}
+          labels: ${{ steps.bridge-meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
