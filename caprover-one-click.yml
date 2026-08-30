@@ -1,0 +1,41 @@
+captainVersion: 4
+
+services:
+  $$cap_appname:
+    image: ghcr.io/tylonhh/trvl-caprover:latest
+    environment:
+      TRVL_MCP_TOKEN: $$cap_mcp_token
+      TRVL_NO_BROWSER_COOKIES: '1'
+      TRVL_NO_TIER2_CDP: '1'
+      TRVL_NO_TELEMETRY: '1'
+    volumes:
+      - $$cap_appname-data:/home/trvl/.trvl
+    caproverExtra:
+      containerHttpPort: '8080'
+
+caproverOneClickApp:
+  displayName: trvl MCP
+  description: Self-hosted travel MCP server for flights, accommodation, trains, cars and ferries.
+  isOfficial: false
+  documentation: https://github.com/TylonHH/trvl-caprover
+  instructions:
+    start: |-
+      This installs one trvl MCP app with persistent storage.
+
+      Keep the generated MCP token secret. CapRover will pass it to trvl as an environment variable.
+    end: |-
+      trvl has been deployed.
+
+      1. Open the app's HTTP Settings in CapRover.
+      2. Enable HTTPS and Force HTTPS.
+      3. Verify https://$$cap_appname.$$cap_root_domain/health returns status "ok".
+      4. Use https://$$cap_appname.$$cap_root_domain/mcp as the remote MCP URL.
+      5. Configure the generated token as a Bearer token in the MCP client.
+
+      The provider dashboard is available at /dashboard and requires the same Bearer token.
+  variables:
+    - id: $$cap_mcp_token
+      label: MCP bearer token
+      defaultValue: $$cap_gen_random_hex(64)
+      description: Keep this secret. It grants full read/write access to trvl.
+      validRegex: /^.{32,}$/
