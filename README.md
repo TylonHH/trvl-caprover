@@ -9,7 +9,7 @@ ghcr.io/tylonhh/trvl-caprover:latest
 ghcr.io/tylonhh/trvl-caprover-oauth:latest
 ```
 
-`trvl-caprover` is the internal MCP server image. `trvl-caprover-oauth` is a small OAuth 2.1 compatible bridge for ChatGPT Developer Mode and Codex HTTP MCP clients.
+`trvl-caprover` is the original bearer-token MCP server image. `trvl-caprover-oauth` runs trvl internally on `127.0.0.1` and exposes a small OAuth 2.1 compatible bridge for ChatGPT Developer Mode and Codex HTTP MCP clients.
 
 ## One-click installation
 
@@ -48,12 +48,12 @@ The bridge also exposes the discovery endpoints ChatGPT-compatible MCP clients e
 
 ## Persistent data
 
-The template creates one named volume for the internal trvl app, mounted at `/home/trvl/.trvl`. It stores preferences, traveller profile, trips, price watches, caches and provider health history. Back up this volume before replacing or deleting the app.
+The template creates one named volume mounted at `/home/trvl/.trvl`. It stores preferences, traveller profile, trips, price watches, caches and provider health history. Back up this volume before replacing or deleting the app.
 
 ## Security defaults
 
 - Public remote access requires OAuth.
-- The internal trvl app still requires a long random bearer token; the OAuth bridge is the only component that knows this token.
+- trvl still requires a long random bearer token internally; it only listens on `127.0.0.1` inside the container.
 - TLS is terminated by CapRover. Enable HTTPS before connecting an MCP client.
 - Browser-cookie access and headless-browser fallback are disabled in the container.
 - Anonymous trvl telemetry is disabled.
