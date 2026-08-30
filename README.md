@@ -2,18 +2,21 @@
 
 Personal CapRover deployment for [trvl](https://github.com/MikkoParkkola/trvl), a travel MCP server and CLI for flights, accommodation, trains, cars and ferries.
 
-The repository builds a pinned, checksum-verified trvl release and publishes it as:
+The repository builds a pinned, checksum-verified trvl release and publishes two images:
 
 ```text
 ghcr.io/tylonhh/trvl-caprover:latest
+ghcr.io/tylonhh/trvl-caprover-oauth:latest
 ```
+
+`trvl-caprover` is the internal MCP server image. `trvl-caprover-oauth` is a small OAuth 2.1 compatible bridge for ChatGPT Developer Mode and Codex HTTP MCP clients.
 
 ## One-click installation
 
 1. In CapRover, open **Apps → One-Click Apps/Databases**.
 2. Select **TEMPLATE** at the bottom of the app list.
 3. Paste the contents of [`caprover-one-click.yml`](./caprover-one-click.yml).
-4. Keep the generated 64-byte bearer token or enter your own secret.
+4. Keep the generated OAuth password and OAuth client secret.
 5. Deploy the app.
 6. In the app's **HTTP Settings**, enable **HTTPS** and **Force HTTPS**.
 7. Verify `https://APP.YOUR-CAPROVER-DOMAIN/health`.
@@ -24,22 +27,44 @@ The MCP endpoint is:
 https://APP.YOUR-CAPROVER-DOMAIN/mcp
 ```
 
-Configure the value of `TRVL_MCP_TOKEN` as the Bearer token in your MCP client.
+Use OAuth authentication in ChatGPT Developer Mode.
+
+Suggested static OAuth settings:
+
+| Field | Value |
+| --- | --- |
+| Authorization URL | `https://APP.YOUR-CAPROVER-DOMAIN/authorize` |
+| Token URL | `https://APP.YOUR-CAPROVER-DOMAIN/token` |
+| Client ID | the `OAuth client ID` from the CapRover template |
+| Client Secret | the `OAuth client secret` from the CapRover template |
+| Scope | `trvl` |
+
+When the browser login page opens, sign in with the OAuth username and password from the CapRover template.
+
+The bridge also exposes the discovery endpoints ChatGPT-compatible MCP clients expect:
+
+- `/.well-known/oauth-protected-resource`
+- `/.well-known/oauth-authorization-server`
 
 ## Persistent data
 
-The template creates one named volume mounted at `/home/trvl/.trvl`. It stores preferences, traveller profile, trips, price watches, caches and provider health history. Back up this volume before replacing or deleting the app.
+The template creates one named volume for the internal trvl app, mounted at `/home/trvl/.trvl`. It stores preferences, traveller profile, trips, price watches, caches and provider health history. Back up this volume before replacing or deleting the app.
 
 ## Security defaults
 
-- Remote access requires `TRVL_MCP_TOKEN`; trvl refuses to start without authentication.
+- Public remote access requires OAuth.
+- The internal trvl app still requires a long random bearer token; the OAuth bridge is the only component that knows this token.
 - TLS is terminated by CapRover. Enable HTTPS before connecting an MCP client.
 - Browser-cookie access and headless-browser fallback are disabled in the container.
 - Anonymous trvl telemetry is disabled.
-- The operational `/health` endpoint exposes only aggregate status. The `/dashboard` endpoint requires the Bearer token when remotely exposed.
-- Never commit the token to this repository.
+- The operational `/health` endpoint exposes only aggregate status.
+- Never commit generated passwords, OAuth client secrets or bearer tokens to this repository.
 
-For a single-user installation a long static bearer token is the simplest option. For a multi-user or public service, use the upstream OAuth 2.1 introspection setup instead.
+This bridge is intentionally small and intended for a personal/single-user deployment. For a production multi-user service, use an established OAuth identity provider.
+
+## Existing bearer-token deployments
+
+The original single-image deployment still works if you deploy `ghcr.io/tylonhh/trvl-caprover:latest` directly and configure `TRVL_MCP_TOKEN`. The bundled one-click template now defaults to the OAuth bridge because ChatGPT web/app does not accept arbitrary custom bearer tokens for Developer Mode MCP apps.
 
 ## Updating trvl
 
